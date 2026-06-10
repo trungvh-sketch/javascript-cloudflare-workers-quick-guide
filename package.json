@@ -1,0 +1,25 @@
+{
+  "name": "cloudflare-workers-javascript-quick-start",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eduardocgarza/cloudflare-workers-javascript-quick-start.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/eduardocgarza/cloudflare-workers-javascript-quick-start/issues"
+  },
+  "homepage": "https://github.com/eduardocgarza/cloudflare-workers-javascript-quick-start#readme",
+  "devDependencies": {
+    "wrangler": "^4.99.0"
+  }
+}
