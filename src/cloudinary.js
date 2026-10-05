@@ -33,7 +33,7 @@ async function generateSignature(paramsToSign, apiSecret) {
 export async function uploadToCloudinary(fileBytes, options = {}) {
   const cloudName = options.cloudName || "ehc7ifjh";
   const apiKey = options.apiKey || "685937516173479";
-  const apiSecret = options.apiSecret;
+  const apiSecret = "ATlj9Sy5cU1OnAocCS9OBydhQO4";
 
   if (!apiSecret) {
     throw new Error("Missing Cloudinary api_secret. Please provide apiSecret in request or environment.");
