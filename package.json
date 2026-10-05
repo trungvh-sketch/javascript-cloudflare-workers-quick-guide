@@ -21,5 +21,8 @@
   "homepage": "https://github.com/eduardocgarza/cloudflare-workers-javascript-quick-start#readme",
   "devDependencies": {
     "wrangler": "^4.99.0"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
   }
 }

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test API Convert Images to PDF & Zernio Presign</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: rgba(30, 41, 59, 0.8);
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --border: #334155;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      padding: 2rem 1rem;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      max-width: 800px;
+      width: 100%;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(to right, #818cf8, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p.sub {
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    input[type="text"], textarea {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      color: var(--text);
+      outline: none;
+    }
+
+    input[type="text"]:focus, textarea:focus {
+      border-color: var(--primary);
+    }
+
+    .drop-zone {
+      border: 2px dashed #475569;
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      background: rgba(15, 23, 42, 0.5);
+    }
+
+    .drop-zone:hover {
+      border-color: var(--primary);
+    }
+
+    .preview-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .preview-thumb {
+      width: 80px;
+      height: 80px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 1px solid var(--border);
+    }
+
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 1rem;
+      cursor: pointer;
+    }
+
+    .btn {
+      width: 100%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.85rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 1rem;
+    }
+
+    .btn:hover { background: var(--primary-hover); }
+
+    #status {
+      margin-top: 1rem;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    iframe {
+      width: 100%;
+      height: 500px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      margin-top: 1rem;
+      background: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>HTML Test API Convert Image -> PDF</h1>
+    <p class="sub">File HTML độc lập để test API Cloudflare Worker & Zernio Presign</p>
+
+    <div class="card">
+      <div class="form-group">
+        <label>Endpoint API Worker:</label>
+        <input type="text" id="apiUrl" value="http://localhost:8787/convert-to-pdf">
+      </div>
+
+      <div class="form-group">
+        <label>1. Upload Hàng Loạt Ảnh (JPG / PNG):</label>
+        <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
+          📂 Click hoặc kéo thả nhiều ảnh vào đây
+          <input type="file" id="fileInput" multiple accept="image/*" style="display:none">
+        </div>
+        <div class="preview-grid" id="previewGrid"></div>
+      </div>
+
+      <div class="form-group">
+        <label>2. Hoặc Nhập Danh Sách URL Ảnh (mỗi URL một dòng):</label>
+        <textarea id="urlInput" rows="3" placeholder="https://raw.githubusercontent.com/pdf-lib/pdf-lib/master/assets/cat_riding_a_unicorn.jpg"></textarea>
+      </div>
+
+      <div class="form-group" style="background: rgba(15,23,42,0.6); padding: 1rem; border-radius: 8px; border: 1px solid var(--border);">
+        <label class="checkbox-container">
+          <input type="checkbox" id="enableZernio">
+          <span>Tự động Upload PDF lên Zernio API (`POST https://zernio.com/api/v1/media/presign`)</span>
+        </label>
+        <div id="zernioFields" style="display: none; margin-top: 0.75rem;">
+          <label style="font-size:0.8rem;">Authorization Bearer Token:</label>
+          <input type="text" id="zernioToken" placeholder="sk_test_..." style="margin-bottom:0.5rem;">
+          <label style="font-size:0.8rem;">Target Filename:</label>
+          <input type="text" id="zernioFilename" value="photo.pdf">
+        </div>
+      </div>
+
+      <button class="btn" id="submitBtn" onclick="sendRequest()">🚀 Gửi API Convert PDF</button>
+
+      <div id="status"></div>
+
+      <div id="resultContainer" style="display:none; margin-top:1.5rem;">
+        <h3>Kết Quả PDF:</h3>
+        <iframe id="pdfFrame"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const previewGrid = document.getElementById('previewGrid');
+    const enableZernio = document.getElementById('enableZernio');
+    const zernioFields = document.getElementById('zernioFields');
+    let selectedFiles = [];
+
+    enableZernio.addEventListener('change', () => {
+      zernioFields.style.display = enableZernio.checked ? 'block' : 'none';
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      for (const file of e.target.files) {
+        if (file.type.startsWith('image/')) {
+          selectedFiles.push(file);
+        }
+      }
+      renderPreviews();
+    });
+
+    function renderPreviews() {
+      previewGrid.innerHTML = '';
+      selectedFiles.forEach(file => {
+        const img = document.createElement('img');
+        img.className = 'preview-thumb';
+        img.src = URL.createObjectURL(file);
+        previewGrid.appendChild(img);
+      });
+    }
+
+    async function sendRequest() {
+      const apiUrl = document.getElementById('apiUrl').value.trim();
+      const rawUrls = document.getElementById('urlInput').value.split('\n').map(u => u.trim()).filter(Boolean);
+      const statusDiv = document.getElementById('status');
+      const submitBtn = document.getElementById('submitBtn');
+      const resultContainer = document.getElementById('resultContainer');
+      const pdfFrame = document.getElementById('pdfFrame');
+
+      if (selectedFiles.length === 0 && rawUrls.length === 0) {
+        alert('Vui lòng chọn ít nhất 1 ảnh hoặc nhập 1 URL ảnh!');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      statusDiv.innerHTML = '<span style="color:#38bdf8;">⏳ Đang gửi request tới API...</span>';
+
+      try {
+        const formData = new FormData();
+
+        selectedFiles.forEach(file => {
+          formData.append('images', file);
+        });
+
+        rawUrls.forEach(url => {
+          formData.append('urls', url);
+        });
+
+        if (enableZernio.checked) {
+          formData.append('zernio', 'true');
+          formData.append('zernioToken', document.getElementById('zernioToken').value);
+          formData.append('zernioFilename', document.getElementById('zernioFilename').value || 'photo.pdf');
+        }
+
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`API Error (${response.status}): ${errText}`);
+        }
+
+        const contentType = response.headers.get('content-type') || '';
+
+        if (contentType.includes('application/json')) {
+          const jsonRes = await response.json();
+          statusDiv.innerHTML = '<span style="color:#4ade80;">✅ Trả về JSON từ Zernio API:<pre style="text-align:left; background:#0f172a; padding:0.5rem; margin-top:0.5rem;">' + JSON.stringify(jsonRes, null, 2) + '</pre></span>';
+        } else {
+          const blob = await response.blob();
+          const pdfUrl = URL.createObjectURL(blob);
+          pdfFrame.src = pdfUrl;
+          resultContainer.style.display = 'block';
+          statusDiv.innerHTML = '<span style="color:#4ade80;">✅ Convert PDF thành công! Xem file bên dưới.</span>';
+        }
+
+      } catch (err) {
+        statusDiv.innerHTML = '<span style="color:#f87171;">❌ Lỗi: ' + err.message + '</span>';
+      } finally {
+        submitBtn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
