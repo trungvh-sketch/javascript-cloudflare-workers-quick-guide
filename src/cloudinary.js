@@ -33,14 +33,16 @@ async function generateSignature(paramsToSign, apiSecret) {
 export async function uploadToCloudinary(fileBytes, options = {}) {
   const cloudName = options.cloudName || "ehc7ifjh";
   const apiKey = options.apiKey || "685937516173479";
-  const apiSecret = "ATlj9Sy5cU1OnAocCS9OBydhQO4";
+  const apiSecret = options.apiSecret || "ATlj9Sy5cU1OnAocCS9OBydhQO4";
 
   if (!apiSecret) {
     throw new Error("Missing Cloudinary api_secret. Please provide apiSecret in request or environment.");
   }
 
   const timestamp = Math.floor(Date.now() / 1000);
-  const publicId = options.publicId || `pdf_${Date.now()}`;
+  // Với resourceType "raw", phải thêm .pdf vào public_id để URL có đuôi file đúng
+  const rawPublicId = options.publicId || `pdf_${Date.now()}`;
+  const publicId = rawPublicId.endsWith('.pdf') ? rawPublicId : `${rawPublicId}.pdf`;
   const resourceType = options.resourceType || "raw"; // "raw" preserves PDF files perfectly
 
   const paramsToSign = {
@@ -65,6 +67,7 @@ export async function uploadToCloudinary(fileBytes, options = {}) {
   formData.append("timestamp", timestamp.toString());
   formData.append("public_id", publicId);
   formData.append("signature", signature);
+
 
   const endpoint = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
 
