@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Test API Convert Images to PDF & Zernio Presign</title>
+  <title>Test API Convert Images to PDF & Cloudinary Upload</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -14,6 +14,7 @@
       --text: #f8fafc;
       --muted: #94a3b8;
       --border: #334155;
+      --accent: #38bdf8;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
@@ -108,11 +109,18 @@
       border: 1px solid var(--border);
     }
 
+    .cloudinary-box {
+      background: rgba(15, 23, 42, 0.6);
+      padding: 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      margin-top: 1rem;
+    }
+
     .checkbox-container {
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-top: 1rem;
       cursor: pointer;
     }
 
@@ -149,17 +157,17 @@
 </head>
 <body>
   <div class="container">
-    <h1>HTML Test API Convert Image -> PDF</h1>
-    <p class="sub">File HTML độc lập để test API Cloudflare Worker & Zernio Presign</p>
+    <h1>Convert Image -> PDF & Upload Cloudinary</h1>
+    <p class="sub">Test API Convert list ảnh sang PDF và tự động đẩy lên Cloudinary</p>
 
     <div class="card">
       <div class="form-group">
         <label>Endpoint API Worker:</label>
-        <input type="text" id="apiUrl" value="http://localhost:8787/convert-to-pdf">
+        <input type="text" id="apiUrl" value="https://javascript-cloudflare-workers-quick-guide.trung-vh.workers.dev/convert-to-pdf">
       </div>
 
       <div class="form-group">
-        <label>1. Upload Hàng Loạt Ảnh (JPG / PNG):</label>
+        <label>1. Upload Hàng Loạt Ảnh từ máy (JPG / PNG):</label>
         <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
           📂 Click hoặc kéo thả nhiều ảnh vào đây
           <input type="file" id="fileInput" multiple accept="image/*" style="display:none">
@@ -172,25 +180,39 @@
         <textarea id="urlInput" rows="3" placeholder="https://raw.githubusercontent.com/pdf-lib/pdf-lib/master/assets/cat_riding_a_unicorn.jpg"></textarea>
       </div>
 
-      <div class="form-group" style="background: rgba(15,23,42,0.6); padding: 1rem; border-radius: 8px; border: 1px solid var(--border);">
+      <div class="cloudinary-box">
         <label class="checkbox-container">
-          <input type="checkbox" id="enableZernio">
-          <span>Tự động Upload PDF lên Zernio API (`POST https://zernio.com/api/v1/media/presign`)</span>
+          <input type="checkbox" id="enableCloudinary">
+          <span>Tự động Upload PDF tạo ra lên ☁️ <strong>Cloudinary</strong></span>
         </label>
-        <div id="zernioFields" style="display: none; margin-top: 0.75rem;">
-          <label style="font-size:0.8rem;">Authorization Bearer Token:</label>
-          <input type="text" id="zernioToken" placeholder="sk_test_..." style="margin-bottom:0.5rem;">
-          <label style="font-size:0.8rem;">Target Filename:</label>
-          <input type="text" id="zernioFilename" value="photo.pdf">
+        <div id="cloudinaryFields" style="display: none; margin-top: 0.75rem;">
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+            <div>
+              <label style="font-size:0.8rem;">Cloud Name:</label>
+              <input type="text" id="cloudName" value="ehc7ifjh">
+            </div>
+            <div>
+              <label style="font-size:0.8rem;">API Key:</label>
+              <input type="text" id="apiKey" value="685937516173479">
+            </div>
+          </div>
+          <div style="margin-top: 0.5rem;">
+            <label style="font-size:0.8rem;">API Secret (Bắt buộc để ký upload):</label>
+            <input type="text" id="apiSecret" placeholder="Nhập API Secret của bạn từ Cloudinary Console...">
+          </div>
+          <div style="margin-top: 0.5rem;">
+            <label style="font-size:0.8rem;">Public ID (Tùy chọn):</label>
+            <input type="text" id="publicId" placeholder="shoes_pdf_123">
+          </div>
         </div>
       </div>
 
-      <button class="btn" id="submitBtn" onclick="sendRequest()">🚀 Gửi API Convert PDF</button>
+      <button class="btn" id="submitBtn" onclick="sendRequest()">🚀 Gửi API Convert PDF & Upload</button>
 
       <div id="status"></div>
 
       <div id="resultContainer" style="display:none; margin-top:1.5rem;">
-        <h3>Kết Quả PDF:</h3>
+        <h3>Xem Trước PDF:</h3>
         <iframe id="pdfFrame"></iframe>
       </div>
     </div>
@@ -199,12 +221,12 @@
   <script>
     const fileInput = document.getElementById('fileInput');
     const previewGrid = document.getElementById('previewGrid');
-    const enableZernio = document.getElementById('enableZernio');
-    const zernioFields = document.getElementById('zernioFields');
+    const enableCloudinary = document.getElementById('enableCloudinary');
+    const cloudinaryFields = document.getElementById('cloudinaryFields');
     let selectedFiles = [];
 
-    enableZernio.addEventListener('change', () => {
-      zernioFields.style.display = enableZernio.checked ? 'block' : 'none';
+    enableCloudinary.addEventListener('change', () => {
+      cloudinaryFields.style.display = enableCloudinary.checked ? 'block' : 'none';
     });
 
     fileInput.addEventListener('change', (e) => {
@@ -240,7 +262,7 @@
       }
 
       submitBtn.disabled = true;
-      statusDiv.innerHTML = '<span style="color:#38bdf8;">⏳ Đang gửi request tới API...</span>';
+      statusDiv.innerHTML = '<span style="color:#38bdf8;">⏳ Đang xử lý tạo PDF & đẩy lên Cloudinary...</span>';
 
       try {
         const formData = new FormData();
@@ -253,10 +275,14 @@
           formData.append('urls', url);
         });
 
-        if (enableZernio.checked) {
-          formData.append('zernio', 'true');
-          formData.append('zernioToken', document.getElementById('zernioToken').value);
-          formData.append('zernioFilename', document.getElementById('zernioFilename').value || 'photo.pdf');
+        if (enableCloudinary.checked) {
+          formData.append('cloudinary', 'true');
+          formData.append('cloudName', document.getElementById('cloudName').value);
+          formData.append('apiKey', document.getElementById('apiKey').value);
+          formData.append('apiSecret', document.getElementById('apiSecret').value);
+          if (document.getElementById('publicId').value) {
+            formData.append('publicId', document.getElementById('publicId').value);
+          }
         }
 
         const response = await fetch(apiUrl, {
@@ -273,7 +299,16 @@
 
         if (contentType.includes('application/json')) {
           const jsonRes = await response.json();
-          statusDiv.innerHTML = '<span style="color:#4ade80;">✅ Trả về JSON từ Zernio API:<pre style="text-align:left; background:#0f172a; padding:0.5rem; margin-top:0.5rem;">' + JSON.stringify(jsonRes, null, 2) + '</pre></span>';
+          const secureUrl = jsonRes.cloudinary?.secure_url || jsonRes.cloudinary?.url;
+          statusDiv.innerHTML = `<div style="text-align:left; background:#0f172a; padding:1rem; border-radius:8px; margin-top:0.5rem;">
+            <p style="color:#4ade80; font-weight:bold; margin-bottom:0.5rem;">✅ Đã tạo PDF và đẩy lên Cloudinary thành công!</p>
+            ${secureUrl ? `<p>🔗 <strong>URL Cloudinary:</strong> <a href="${secureUrl}" target="_blank" style="color:#38bdf8;">${secureUrl}</a></p>` : ''}
+            <pre style="font-size:0.8rem; margin-top:0.5rem;">${JSON.stringify(jsonRes, null, 2)}</pre>
+          </div>`;
+          if (secureUrl) {
+            pdfFrame.src = secureUrl;
+            resultContainer.style.display = 'block';
+          }
         } else {
           const blob = await response.blob();
           const pdfUrl = URL.createObjectURL(blob);
